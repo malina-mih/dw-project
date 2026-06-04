@@ -21,8 +21,6 @@ cd "C:\Malina\BD1\DW PROJECT\DW_project"
 docker compose up -d
 ```
 
-If you do not use Docker, start a local MongoDB server on `mongodb://localhost:27017`.
-PySpark also requires a local Java runtime available on `PATH`.
 
 Optional environment variables:
 
@@ -167,4 +165,4 @@ Demo assistant prompts:
 - `app/analytics.py`: Spark summary, trend, forecast, risk signal
 - `mcp_server.py`: MCP tools backed by the REST API
 - `docs/project_report.md`: report draft
-- `docs/ai_usage_statement.md`: AI usage statement draft
+
