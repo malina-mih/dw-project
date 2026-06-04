@@ -6,6 +6,7 @@ from pymongo.database import Database
 from app import analytics
 from app.config import settings
 from app.database import ensure_indexes, get_database
+from app.provider_clients import fetch_stooq_daily_payload
 from app.repository import WarehouseRepository
 from app.sample_data import ingest_payload, sample_payload
 from app.schemas import AssetDeactivateIn, IngestPayload
@@ -39,12 +40,33 @@ def ingest_sample(repo: WarehouseRepository = Depends(get_repo)) -> dict[str, in
     return ingest_payload(repo, sample_payload())
 
 
+@app.post("/ingest/stooq/{symbol}")
+def ingest_stooq_daily(
+    symbol: str,
+    asset_class: str = Query(default="stock"),
+    region: str = Query(default="US"),
+    currency: str = Query(default="USD"),
+    limit: int = Query(default=100, ge=1, le=5000),
+    repo: WarehouseRepository = Depends(get_repo),
+) -> dict[str, int]:
+    payload = fetch_stooq_daily_payload(
+        symbol=symbol,
+        asset_class=asset_class,
+        region=region,
+        currency=currency,
+        limit=limit,
+    )
+    return ingest_payload(repo, payload)
+
+
 @app.get("/assets")
 def list_assets(
     as_of: datetime | None = Query(default=None),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=1000),
     repo: WarehouseRepository = Depends(get_repo),
 ) -> list[dict]:
-    return repo.list_assets(as_of=as_of)
+    return repo.list_assets(as_of=as_of, offset=offset, limit=limit)
 
 
 @app.get("/assets/{asset_id}")
@@ -77,9 +99,11 @@ def deactivate_asset(
 @app.get("/sources")
 def list_sources(
     as_of: datetime | None = Query(default=None),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=1000),
     repo: WarehouseRepository = Depends(get_repo),
 ) -> list[dict]:
-    return repo.list_sources(as_of=as_of)
+    return repo.list_sources(as_of=as_of, offset=offset, limit=limit)
 
 
 @app.get("/sources/{source_id}")

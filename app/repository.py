@@ -96,7 +96,12 @@ class WarehouseRepository:
         }
         return self._insert_or_existing_id(self.db.time_series, identity, doc)
 
-    def list_sources(self, as_of: datetime | None = None) -> list[dict[str, Any]]:
+    def list_sources(
+        self,
+        as_of: datetime | None = None,
+        offset: int = 0,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
         query: dict[str, Any] = {}
         if as_of:
             query["valid_from"] = {"$lte": as_of}
@@ -105,7 +110,8 @@ class WarehouseRepository:
         for doc in docs:
             if doc["source_id"] not in latest:
                 latest[doc["source_id"]] = doc
-        return clean_docs(latest.values())
+        paged = list(latest.values())[offset : offset + limit]
+        return clean_docs(paged)
 
     def get_source(self, source_id: str, as_of: datetime | None = None) -> dict[str, Any] | None:
         query: dict[str, Any] = {"source_id": source_id}
@@ -114,7 +120,12 @@ class WarehouseRepository:
         doc = self.db.data_sources.find_one(query, sort=[("valid_from", -1)])
         return clean_doc(doc) if doc else None
 
-    def list_assets(self, as_of: datetime | None = None) -> list[dict[str, Any]]:
+    def list_assets(
+        self,
+        as_of: datetime | None = None,
+        offset: int = 0,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
         query: dict[str, Any] = {}
         if as_of:
             query["valid_from"] = {"$lte": as_of}
@@ -126,7 +137,8 @@ class WarehouseRepository:
                 latest[asset_id] = doc
             elif asset_id not in latest:
                 latest[asset_id] = doc
-        return clean_docs(doc for doc in latest.values() if doc.get("status") == "active")
+        active = [doc for doc in latest.values() if doc.get("status") == "active"]
+        return clean_docs(active[offset : offset + limit])
 
     def get_asset(self, asset_id: str, as_of: datetime | None = None) -> dict[str, Any] | None:
         query: dict[str, Any] = {"asset_id": asset_id}

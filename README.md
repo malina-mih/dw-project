@@ -1,13 +1,14 @@
 # Acme Financial Markets Data Warehouse
 
-Runnable coursework platform for a fictional company, Acme Ltd. It ingests financial-market data, stores heterogeneous financial assets and time-series indicators in MongoDB, exposes a REST API, provides basic analytics, and includes an MCP server so an LLM assistant can query grounded warehouse data.
+Runnable coursework platform for a fictional company, Acme Ltd. It ingests financial-market data, stores heterogeneous financial assets and time-series indicators in MongoDB, exposes a REST API, provides Apache Spark analytics and Spark ML prediction, and includes an MCP server so an LLM assistant can query grounded warehouse data.
 
 ## Architecture
 
 - **FastAPI backend** in `app/main.py`
 - **MongoDB NoSQL storage** with immutable temporal records
 - **Sample ingestion** in `app/sample_data.py` and `scripts/seed_sample_data.py`
-- **Analytics** in `app/analytics.py`
+- **External REST ingestion** in `app/provider_clients.py` through public Stooq daily CSV data
+- **Apache Spark analytics and ML** in `app/analytics.py`
 - **MCP stdio server** in `mcp_server.py`
 
 Temporal rule: records are inserted as new versions. The application does not update or delete stored business records. If an asset is unavailable, `/assets/{asset_id}/deactivate` inserts an `availability_marker` with a `valid_from` timestamp.
@@ -21,6 +22,7 @@ docker compose up -d
 ```
 
 If you do not use Docker, start a local MongoDB server on `mongodb://localhost:27017`.
+PySpark also requires a local Java runtime available on `PATH`.
 
 Optional environment variables:
 
@@ -53,12 +55,19 @@ You can also seed through the API:
 Invoke-RestMethod -Method Post http://localhost:8000/ingest/sample
 ```
 
+Ingest daily data from the public Stooq provider:
+
+```powershell
+Invoke-RestMethod -Method Post "http://localhost:8000/ingest/stooq/msft.us?limit=30"
+```
+
 ## Required Use Cases
 
 ### Q1: available financial assets
 
 ```powershell
 Invoke-RestMethod http://localhost:8000/assets
+Invoke-RestMethod "http://localhost:8000/assets?offset=0&limit=10"
 ```
 
 ### Q2: details for one asset
@@ -71,6 +80,7 @@ Invoke-RestMethod http://localhost:8000/assets/asset-msft
 
 ```powershell
 Invoke-RestMethod http://localhost:8000/sources
+Invoke-RestMethod "http://localhost:8000/sources?offset=0&limit=10"
 ```
 
 ### Q4: time-series metadata
@@ -86,6 +96,8 @@ Invoke-RestMethod "http://localhost:8000/timeseries/asset-msft/nasdaq-demo?limit
 ```
 
 ## Analytics Examples
+
+Analytics endpoints use Apache Spark DataFrames for aggregation/trend/risk and Spark MLlib linear regression for the forecast workflow.
 
 ```powershell
 Invoke-RestMethod "http://localhost:8000/analytics/summary?asset_id=asset-msft&source_id=nasdaq-demo&indicator=close"
@@ -151,7 +163,8 @@ Demo assistant prompts:
 - `app/database.py`: MongoDB connection and indexes
 - `app/repository.py`: immutable insert/query behavior
 - `app/main.py`: REST API
-- `app/analytics.py`: summary, trend, forecast, risk signal
+- `app/provider_clients.py`: external Stooq REST/CSV ingestion client
+- `app/analytics.py`: Spark summary, trend, forecast, risk signal
 - `mcp_server.py`: MCP tools backed by the REST API
 - `docs/project_report.md`: report draft
 - `docs/ai_usage_statement.md`: AI usage statement draft
