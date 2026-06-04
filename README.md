@@ -154,4 +154,3 @@ Demo assistant prompts:
 - `app/analytics.py`: summary, trend, forecast, risk signal
 - `mcp_server.py`: MCP tools backed by the REST API
 - `docs/project_report.md`: report draft
-- `docs/ai_usage_statement.md`: AI usage statement draft
